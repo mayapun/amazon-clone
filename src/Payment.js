@@ -6,7 +6,8 @@ import { useStateValue } from "./StateProvider";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import CurrencyFormat from "react-currency-format";
 import { getBasketTotal } from "./reducer";
-import axios from "axios";
+import axios from "./axios";
+import { db }  from './firebase';
 
 function Payment() {
   const [{ basket, user }, dispatch] = useStateValue();
@@ -28,6 +29,7 @@ function Payment() {
         method: "post",
         // Stripe expects the toatl in a currencies subunits
         url: `/payments/create?total=${getBasketTotal(basket) * 100}`,
+        // url: "/hello",
       });
       setClientSecret(response.data.clientSecret);
     };
@@ -50,9 +52,25 @@ function Payment() {
       })
       .then(({ paymentIntent }) => {
         // paymentIntent = payment confirmation
+
+        db
+          .collection('users')
+          .doc(user?.uid )
+          .collection('orders')
+          .doc(paymentIntent.id)
+          .set({
+            basket: basket,
+            amount: paymentIntent.amount,
+            created: paymentIntent.created
+          })
+
         setSucceeded(true);
         setError(null);
         setProcessing(false);
+
+        dispatch({
+          type: 'EMPTY_BASKET'
+        })
 
         history.replace("/orders");
       });
@@ -97,22 +115,23 @@ function Payment() {
                 image={item.image}
                 price={item.price}
                 rating={item.rating}
+                key={item.id}
               />
             ))}
           </div>
         </div>
         {/* payment method */}
         <div className="payment__section">
-          <div class="payment__title">
+          <div className="payment__title">
             <h3> Payment Method </h3>
           </div>
 
-          <div class="payment__details">
+          <div className="payment__details">
             {/* Stripe magic will happen here */}
 
             <form onSubmit={handleSubmit}>
               <CardElement onChange={handleChange} />
-              <div class="payment__priceContainer">
+              <div className="payment__priceContainer">
                 <CurrencyFormat
                   renderText={(value) => <h3> Order Total: {value} </h3>}
                   decimalScale={2}

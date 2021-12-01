@@ -17,18 +17,25 @@ app.use(express.json());
 
 // API routes
 
-app.get("/", (request, response) => response.status(200).send("hello world"));
+app.get("/", (request, response) => {
+  response.status(200).send("hello Maya");
+});
 
+// eslint-disable-next-line max-len
+// app.post('/hello', (request, response) => response.status(200).send("hello"));
 app.post("/payments/create", async (request, response) => {
   const total = request.query.total;
 
   console.log("Payment Request Recieved BOOM!!! for this amount >>>>> ", total);
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: total, // subunits of the currency
-    currency: "usd",
-  });
-
+  const paymentIntent = await stripe.paymentIntents
+    .create({
+      amount: total, // subunits of the currency
+      currency: "usd",
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
   // OK -Created
 
   response.status(201).send({
